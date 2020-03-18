@@ -325,7 +325,7 @@ int main(int argc, char *argv[]) {
   fwrite(&ip, 2, 1, pcap_file);
   
   // write the rest of the zeros
-  pcap_write(pcap_file, data, frame_size - 2*MAC_ADDRESS_BYTES - sizeof(struct vlan_s) - 2);
+  pcap_write(pcap_file, data, frame_size - 2*MAC_ADDRESS_BYTES - sizeof(struct vlan_s) - sizeof(ip));
   pcap_finalize(pcap_file);
 
   // free everything
