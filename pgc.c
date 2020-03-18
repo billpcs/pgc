@@ -167,9 +167,9 @@ void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size) {
 void print_help(void) {
   printf("\nHello.\n");
 
-  printf("\t __  ___  __\n\
-\t((_)((_( ((_ \n\
-\t ))   _))\n\n");
+  printf("\t __  ___  __\n"
+         "\t((_)((_( ((_ \n"
+         "\t ))   _))\n\n");
 
   printf("pgc: Generate pcap files from the command line!\n\n\n");
 
