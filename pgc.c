@@ -147,27 +147,6 @@ uint8_t pcap_write(FILE *f, void *data, uint32_t size) {
 
 uint8_t pcap_finalize(FILE *f) { return fclose(f); }
 
-uint8_t data_write_ethernet(uint8_t *data, uint8_t *dst_mac, uint8_t *src_mac,
-                            vlan_t **vlans) {
-
-  uint8_t *moving = data;
-
-  memcpy(moving, dst_mac, MAC_ADDRESS_BYTES);
-  moving += MAC_ADDRESS_BYTES;
-
-  memcpy(moving, src_mac, MAC_ADDRESS_BYTES);
-  moving += MAC_ADDRESS_BYTES;
-  int i = 0;
-  while (vlans[i] != NULL) {
-    memcpy(moving, vlans[i], sizeof(vlan_t));
-    moving += sizeof(vlan_t);
-    i++;
-  }
-
-  uint16_t ip = htons(0x0800);
-  memcpy(moving, &ip, sizeof(uint16_t));
-}
-
 void populate_global_pcap_header(pcap_hdr_t *hdr) {
   hdr->magic_number = 0xa1b2c3d4;
   hdr->version_major = 2;
@@ -324,12 +303,11 @@ int main(int argc, char *argv[]) {
     set_vlan(vlans[0], ethertype, vid, prio, dei);
   }
 
-  populate_global_pcap_header(&hdr);
-  populate_packet_pcap_header(&rec, frame_size);
-
-  // set the basic valuesk
   set_mac(src_mac, cli_src_mac);
   set_mac(dst_mac, cli_dst_mac);
+
+  populate_global_pcap_header(&hdr);
+  populate_packet_pcap_header(&rec, frame_size);
 
   pcap_init(&pcap_file, cli_pcap_name);
   pcap_write_pcap_header(pcap_file, &hdr);
