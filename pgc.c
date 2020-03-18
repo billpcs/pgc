@@ -309,15 +309,8 @@ int main(int argc, char *argv[]) {
     insert_vlan = 1;
   }
 
-  pcap_hdr_t *hdr = malloc(sizeof(pcap_hdr_t));
-  pcaprec_hdr_t *rec = malloc(sizeof(pcaprec_hdr_t));
-
-  CHECK_MALLOC(hdr);
-  CHECK_MALLOC(rec);
-
-  // make everything be zero
-  memset(hdr, 0, sizeof(pcap_hdr_t));
-  memset(rec, 0, sizeof(pcaprec_hdr_t));
+  pcap_hdr_t hdr;
+  pcaprec_hdr_t rec;
 
   if (insert_vlan) {
     vlans[0] = malloc(sizeof(vlan_t));
@@ -326,8 +319,8 @@ int main(int argc, char *argv[]) {
     set_vlan(vlans[0], ethertype, vid, prio, dei);
   }
 
-  populate_global_pcap_header(hdr);
-  populate_packet_pcap_header(rec, frame_size);
+  populate_global_pcap_header(&hdr);
+  populate_packet_pcap_header(&rec, frame_size);
 
   // set the basic valuesk
   set_mac(src_mac, cli_src_mac);
@@ -337,13 +330,11 @@ int main(int argc, char *argv[]) {
   data_write_ethernet(data, dst_mac, src_mac, vlans);
 
   // write everything to the pcap file
-  pcap_init(&pcap_file, cli_pcap_name, hdr);
-  pcap_write(pcap_file, rec, data, frame_size);
+  pcap_init(&pcap_file, cli_pcap_name, &hdr);
+  pcap_write(pcap_file, &rec, data, frame_size);
   pcap_finalize(pcap_file);
 
   // free everything
-  free(hdr);
-  free(rec);
   uint16_t n = 0;
   while (vlans[n] != NULL)
     free(vlans[n++]);
