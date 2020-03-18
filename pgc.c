@@ -120,13 +120,17 @@ void print_mac(uint8_t *mac) {
          mac[5]);
 }
 
-uint8_t pcap_init(FILE **f, const char *filename, pcap_hdr_t *hdr) {
+uint8_t pcap_init(FILE **f, const char *filename) {
   *f = fopen(filename, "w");
+
   if (*f == NULL)
     EXIT_ERROR("Could not create file", FILE_ERROR);
 
-  CHECK_FWRITE1(fwrite((const void *)hdr, sizeof(pcap_hdr_t), 1, *f))
   return 0;
+}
+
+uint8_t pcap_write_pcap_header(FILE* f, pcap_hdr_t* hdr) {
+  CHECK_FWRITE1(fwrite((const void *)hdr, sizeof(pcap_hdr_t), 1, f));
 }
 
 uint8_t pcap_write(FILE *f, pcaprec_hdr_t *rec, void *data, uint32_t size) {
@@ -329,8 +333,9 @@ int main(int argc, char *argv[]) {
   // paste L2 frame into the `data` array
   data_write_ethernet(data, dst_mac, src_mac, vlans);
 
-  // write everything to the pcap file
-  pcap_init(&pcap_file, cli_pcap_name, &hdr);
+  pcap_init(&pcap_file, cli_pcap_name);
+  pcap_write_pcap_header(pcap_file, &hdr);
+
   pcap_write(pcap_file, &rec, data, frame_size);
   pcap_finalize(pcap_file);
 
