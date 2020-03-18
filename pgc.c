@@ -133,12 +133,13 @@ uint8_t pcap_write_pcap_header(FILE* f, pcap_hdr_t* hdr) {
   CHECK_FWRITE1(fwrite((const void *)hdr, sizeof(pcap_hdr_t), 1, f));
 }
 
-uint8_t pcap_write(FILE *f, pcaprec_hdr_t *rec, void *data, uint32_t size) {
+uint8_t pcap_write_pcap_rec_header(FILE* f, pcaprec_hdr_t* rec) {
+  CHECK_FWRITE1(fwrite((const void *)rec, sizeof(pcaprec_hdr_t), 1, f));
+}
+
+uint8_t pcap_write(FILE *f, void *data, uint32_t size) {
   if (f == NULL)
     EXIT_ERROR("Attempted to write on NULL descriptor", FILE_ERROR);
-
-  // write the packet header
-  CHECK_FWRITE1(fwrite((const void *)rec, sizeof(pcaprec_hdr_t), 1, f))
 
   // write the packet data
   CHECK_FWRITE1(fwrite((const void *)data, size, 1, f))
@@ -330,13 +331,23 @@ int main(int argc, char *argv[]) {
   set_mac(src_mac, cli_src_mac);
   set_mac(dst_mac, cli_dst_mac);
 
-  // paste L2 frame into the `data` array
-  data_write_ethernet(data, dst_mac, src_mac, vlans);
-
   pcap_init(&pcap_file, cli_pcap_name);
   pcap_write_pcap_header(pcap_file, &hdr);
+  pcap_write_pcap_rec_header(pcap_file, &rec);
 
-  pcap_write(pcap_file, &rec, data, frame_size);
+  fwrite(&dst_mac, MAC_ADDRESS_BYTES, 1, pcap_file);
+  fwrite(&src_mac, MAC_ADDRESS_BYTES, 1, pcap_file);
+
+  int i = 0;
+  while (vlans[i] != NULL)
+    fwrite(vlans[i++], sizeof(struct vlan_s), 1, pcap_file);
+
+  // write IP ethertype
+  uint16_t ip = htons(0x0800);
+  fwrite(&ip, 2, 1, pcap_file);
+  
+  // write the rest of the zeros
+  pcap_write(pcap_file, data, frame_size - 2*MAC_ADDRESS_BYTES - sizeof(struct vlan_s) - 2);
   pcap_finalize(pcap_file);
 
   // free everything
