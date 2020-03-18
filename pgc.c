@@ -188,12 +188,12 @@ void print_help(void) {
   printf("\n\nMandatory examples:\n");
   printf("\n");
   printf("Ethertype 0x88a8, vlan 222, priority 7, size 256\n");
-  printf("./paibuilder -e 0x88a8 -v 222 -p 7 -l 256 -f frame_88a8_222.pcap\n");
+  printf("./pgc -e 0x88a8 -v 222 -p 7 -l 256 -f frame_88a8_222.pcap\n");
 
   printf("\n\n");
   printf("Ethertype %s, vlan %s, priority %s, size 40 with DEI set\n",
          DEFAULT_ETHERTYPE, DEFAULT_VID, DEFAULT_PRIO);
-  printf("./paibuilder -i 1 -l 40 -f frame_8100_100_dei.pcap\n");
+  printf("./pgc -i 1 -l 40 -f frame_8100_100_dei.pcap\n");
 
   printf("\n\n");
   printf("Report bugs to: me\n");
