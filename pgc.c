@@ -27,26 +27,27 @@
 #define MEMORY_ERROR -2
 #define CLI_ERROR -3
 
-#define EXIT_ERROR(s, c)                                                       \
-  {                                                                            \
-    cleanup();                                                                 \
-    fprintf(stderr, "%s\n", (s));                                              \
-    exit(c);                                                                   \
+#define EXIT_ERROR(s, c)          \
+  {                               \
+    cleanup();                    \
+    fprintf(stderr, "%s\n", (s)); \
+    exit(c);                      \
   }
 
-#define CHECK_FWRITE1(ret)                                                     \
-  {                                                                            \
-    if ((ret) != 1)                                                            \
-      EXIT_ERROR("fwrite failed", FILE_ERROR);                                 \
+#define CHECK_FWRITE1(ret)                     \
+  {                                            \
+    if ((ret) != 1)                            \
+      EXIT_ERROR("fwrite failed", FILE_ERROR); \
   }
 
-#define CHECK_MALLOC(ret)                                                      \
-  {                                                                            \
-    if ((ret) == NULL)                                                         \
-      EXIT_ERROR("malloc failed", MEMORY_ERROR);                               \
+#define CHECK_MALLOC(ret)                        \
+  {                                              \
+    if ((ret) == NULL)                           \
+      EXIT_ERROR("malloc failed", MEMORY_ERROR); \
   }
 
-typedef struct pcap_hdr_s {
+typedef struct pcap_hdr_s
+{
   uint32_t magic_number;  /* magic number */
   uint16_t version_major; /* major version number */
   uint16_t version_minor; /* minor version number */
@@ -56,14 +57,16 @@ typedef struct pcap_hdr_s {
   uint32_t network;       /* data link type */
 } pcap_hdr_t;
 
-typedef struct pcaprec_hdr_s {
+typedef struct pcaprec_hdr_s
+{
   uint32_t ts_sec;   /* timestamp seconds */
   uint32_t ts_usec;  /* timestamp microseconds */
   uint32_t incl_len; /* number of octets of packet saved in file */
   uint32_t orig_len; /* actual length of packet */
 } pcaprec_hdr_t;
 
-typedef struct vlan_s {
+typedef struct vlan_s
+{
   uint16_t tpid; /* 0x8100, 0x88a8, 0x9100, 0x9200 */
 
   uint16_t tci; /* 12 lsb are the vlan value (0-4096)
@@ -76,20 +79,24 @@ void cleanup(void) { return; }
 
 void set_tpid_value(vlan_t *vlan, uint16_t value) { vlan->tpid = value; }
 
-void set_vid_value(vlan_t *vlan, uint16_t value) {
+void set_vid_value(vlan_t *vlan, uint16_t value)
+{
   vlan->tci |= (value & 0x0fff);
 }
 
-void set_prio_value(vlan_t *vlan, uint16_t value) {
+void set_prio_value(vlan_t *vlan, uint16_t value)
+{
   vlan->tci |= (value << 13);
 }
 
-void set_dei_value(vlan_t *vlan, uint16_t value) {
+void set_dei_value(vlan_t *vlan, uint16_t value)
+{
   vlan->tci |= (value << 12) & 0x1000;
 }
 
 void set_vlan(vlan_t *vlan, uint16_t tpid, uint16_t vid, uint16_t prio,
-              uint16_t dei) {
+              uint16_t dei)
+{
   set_tpid_value(vlan, tpid);
   set_vid_value(vlan, vid);
   set_prio_value(vlan, prio);
@@ -99,7 +106,8 @@ void set_vlan(vlan_t *vlan, uint16_t tpid, uint16_t vid, uint16_t prio,
 }
 
 // parse the str and save it into mac
-void set_mac(uint8_t *mac, const char *str) {
+void set_mac(uint8_t *mac, const char *str)
+{
 
   // strtok cannot work with const char
   // make a copy on the heap
@@ -108,19 +116,22 @@ void set_mac(uint8_t *mac, const char *str) {
 
   int i = 0;
   char *str_byte = strtok(init, ":");
-  while (str_byte != NULL) {
+  while (str_byte != NULL)
+  {
     mac[i++] = (uint8_t)strtol(str_byte, NULL, 16);
     str_byte = strtok(NULL, ":");
   }
   free(init);
 }
 
-void print_mac(uint8_t *mac) {
+void print_mac(uint8_t *mac)
+{
   printf("%2x:%2x:%2x:%2x:%2x:%2x\n", mac[0], mac[1], mac[2], mac[3], mac[4],
          mac[5]);
 }
 
-uint8_t pcap_init(FILE **f, const char *filename) {
+uint8_t pcap_init(FILE **f, const char *filename)
+{
   *f = fopen(filename, "w");
 
   if (*f == NULL)
@@ -129,15 +140,18 @@ uint8_t pcap_init(FILE **f, const char *filename) {
   return 0;
 }
 
-uint8_t pcap_write_pcap_header(FILE* f, pcap_hdr_t* hdr) {
+uint8_t pcap_write_pcap_header(FILE *f, pcap_hdr_t *hdr)
+{
   CHECK_FWRITE1(fwrite((const void *)hdr, sizeof(pcap_hdr_t), 1, f));
 }
 
-uint8_t pcap_write_pcap_rec_header(FILE* f, pcaprec_hdr_t* rec) {
+uint8_t pcap_write_pcap_rec_header(FILE *f, pcaprec_hdr_t *rec)
+{
   CHECK_FWRITE1(fwrite((const void *)rec, sizeof(pcaprec_hdr_t), 1, f));
 }
 
-uint8_t pcap_write(FILE *f, void *data, uint32_t size) {
+uint8_t pcap_write(FILE *f, void *data, uint32_t size)
+{
   if (f == NULL)
     EXIT_ERROR("Attempted to write on NULL descriptor", FILE_ERROR);
 
@@ -147,7 +161,8 @@ uint8_t pcap_write(FILE *f, void *data, uint32_t size) {
 
 uint8_t pcap_finalize(FILE *f) { return fclose(f); }
 
-void populate_global_pcap_header(pcap_hdr_t *hdr) {
+void populate_global_pcap_header(pcap_hdr_t *hdr)
+{
   hdr->magic_number = 0xa1b2c3d4;
   hdr->version_major = 2;
   hdr->version_minor = 4;
@@ -157,14 +172,16 @@ void populate_global_pcap_header(pcap_hdr_t *hdr) {
   hdr->network = 1; // LINKTYPE_ETHERNET
 }
 
-void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size) {
+void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size)
+{
   rec->ts_sec = 0;
   rec->ts_usec = 0;
   rec->incl_len = size;
   rec->orig_len = size;
 }
 
-void print_help(void) {
+void print_help(void)
+{
   printf("\nHello.\n");
 
   printf("\t __  ___  __\n"
@@ -199,7 +216,8 @@ void print_help(void) {
   printf("Report bugs to: me\n");
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
   FILE *pcap_file;
   uint16_t num_vlans;
@@ -221,8 +239,10 @@ int main(int argc, char *argv[]) {
   uint8_t *cli_prio;
   int32_t c;
 
-  while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:")) != -1) {
-    switch (c) {
+  while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:")) != -1)
+  {
+    switch (c)
+    {
     case 'h':
       print_help();
       exit(0);
@@ -271,10 +291,13 @@ int main(int argc, char *argv[]) {
   uint16_t ethertype, vid, prio, dei;
   // these are optional and take default values only if one of them is set
   if (cli_ethertype == NULL && cli_vid == NULL && cli_dei == NULL &&
-      cli_prio == NULL) {
+      cli_prio == NULL)
+  {
     // do not place vlan in the frame
     insert_vlan = 0;
-  } else {
+  }
+  else
+  {
     // if even one is present, set the
     // non-present to their default values
     if (cli_ethertype == NULL)
@@ -296,7 +319,8 @@ int main(int argc, char *argv[]) {
   pcap_hdr_t hdr;
   pcaprec_hdr_t rec;
 
-  if (insert_vlan) {
+  if (insert_vlan)
+  {
     vlans[0] = malloc(sizeof(vlan_t));
     CHECK_MALLOC(vlans[0]);
     memset(vlans[0], 0, sizeof(vlan_t));
@@ -323,9 +347,9 @@ int main(int argc, char *argv[]) {
   // write IP ethertype
   uint16_t ip = htons(0x0800);
   fwrite(&ip, 2, 1, pcap_file);
-  
+
   // write the rest of the zeros
-  pcap_write(pcap_file, data, frame_size - 2*MAC_ADDRESS_BYTES - sizeof(struct vlan_s) - sizeof(ip));
+  pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - sizeof(struct vlan_s) - sizeof(ip));
   pcap_finalize(pcap_file);
 
   // free everything
