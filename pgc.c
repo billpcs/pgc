@@ -11,13 +11,13 @@
 #include <unistd.h>
 
 #define DEFAULT_FILE_NAME "paibuild.pcap"
-#define DEFAULT_LENGTH "666"
+#define DEFAULT_LENGTH 666
 #define DEFAULT_DST_MAC "08:00:27:4C:27:11"
 #define DEFAULT_SRC_MAC "08:00:27:2A:09:13"
-#define DEFAULT_VID "100"
-#define DEFAULT_ETHERTYPE "0x8100"
-#define DEFAULT_PRIO "0"
-#define DEFAULT_DEI "0"
+#define DEFAULT_VID 100
+#define DEFAULT_ETHERTYPE 0x8100
+#define DEFAULT_PRIO 0
+#define DEFAULT_DEI 0
 
 #define MAX_FRAME_SIZE 1500
 #define MAC_ADDRESS_BYTES 6
@@ -109,10 +109,7 @@ void set_vlan(vlan_t *vlan, uint16_t tpid, uint16_t vid, uint16_t prio,
 void set_mac(uint8_t *mac, const char *str)
 {
 
-  // strtok cannot work with const char
-  // make a copy on the heap
-  char *init = malloc(sizeof(char) * 17);
-  memcpy(init, str, sizeof(char) * 17);
+  char* init = strdup(str);
 
   int i = 0;
   char *str_byte = strtok(init, ":");
@@ -121,6 +118,7 @@ void set_mac(uint8_t *mac, const char *str)
     mac[i++] = (uint8_t)strtol(str_byte, NULL, 16);
     str_byte = strtok(NULL, ":");
   }
+
   free(init);
 }
 
@@ -195,11 +193,11 @@ void print_help(void)
   printf("-f: Set the output file name          [%s]\n", DEFAULT_FILE_NAME);
   printf("-s: Set the source MAC                [%s]\n", DEFAULT_SRC_MAC);
   printf("-d: Set the destination MAC           [%s]\n", DEFAULT_DST_MAC);
-  printf("-e: Set the ethertype                 [%s]\n", DEFAULT_ETHERTYPE);
-  printf("-v: Set the VLAN ID                   [%s]\n", DEFAULT_VID);
-  printf("-p: Set the VLAN Priority             [%s]\n", DEFAULT_PRIO);
-  printf("-i: Set the DEI bit                   [%s]\n", DEFAULT_DEI);
-  printf("-l: The length of the frame in bytes  [%s]\n", DEFAULT_LENGTH);
+  printf("-e: Set the ethertype                 [0x%x]\n", DEFAULT_ETHERTYPE);
+  printf("-v: Set the VLAN ID                   [%d]\n", DEFAULT_VID);
+  printf("-p: Set the VLAN Priority             [%d]\n", DEFAULT_PRIO);
+  printf("-i: Set the DEI bit                   [%d]\n", DEFAULT_DEI);
+  printf("-l: The length of the frame in bytes  [%d]\n", DEFAULT_LENGTH);
   printf("-h: This message\n");
 
   printf("\n\nMandatory examples:\n");
@@ -208,7 +206,7 @@ void print_help(void)
   printf("./pgc -e 0x88a8 -v 222 -p 7 -l 256 -f frame_88a8_222.pcap\n");
 
   printf("\n\n");
-  printf("Ethertype %s, vlan %s, priority %s, size 40 with DEI set\n",
+  printf("Ethertype 0x%x, vlan %d, priority %d, size 40 with DEI set\n",
          DEFAULT_ETHERTYPE, DEFAULT_VID, DEFAULT_PRIO);
   printf("./pgc -i 1 -l 40 -f frame_8100_100_dei.pcap\n");
 
@@ -220,24 +218,22 @@ int main(int argc, char *argv[])
 {
 
   FILE *pcap_file;
-  uint16_t num_vlans;
-  uint8_t src_mac[MAX_FRAME_SIZE];
-  uint8_t dst_mac[MAX_FRAME_SIZE];
+  uint16_t num_vlans = 0;
+  uint8_t src_mac[MAX_FRAME_SIZE] = {0};
+  uint8_t dst_mac[MAX_FRAME_SIZE] = {0};
   uint8_t data[MAX_FRAME_SIZE] = {0};
   vlan_t *vlans[MAX_VLANS] = {0};
 
   uint8_t insert_vlan;
 
   // CLI variables
-  uint8_t *cli_pcap_name;
-  uint8_t *cli_length;
-  uint8_t *cli_src_mac;
-  uint8_t *cli_dst_mac;
-  uint8_t *cli_vid;
-  uint8_t *cli_dei;
-  uint8_t *cli_ethertype;
-  uint8_t *cli_prio;
+  uint8_t cli_pcap_name = 0, cli_length = 0, cli_src_mac = 0, cli_dst_mac = 0;
+  uint8_t cli_vid = 0, cli_dei = 0, cli_ethertype = 0, cli_prio = 0;
   int32_t c;
+
+  uint32_t frame_size;
+  uint16_t ethertype, vid, prio, dei;
+  char filename[50];
 
   while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:")) != -1)
   {
@@ -247,28 +243,36 @@ int main(int argc, char *argv[])
       print_help();
       exit(0);
     case 'f':
-      cli_pcap_name = optarg;
+      cli_pcap_name = 1;
+      strcpy(filename, optarg);
       break;
     case 's':
-      cli_src_mac = optarg;
+      cli_src_mac = 1;
+      set_mac(src_mac, optarg);
       break;
     case 'd':
-      cli_dst_mac = optarg;
+      cli_dst_mac = 1;
+      set_mac(dst_mac, optarg);
       break;
     case 'v':
-      cli_vid = optarg;
+      cli_vid = 1;
+      vid = atol(optarg);
       break;
     case 'i':
-      cli_dei = optarg;
+      cli_dei = 1;
+      dei = atol(optarg);
       break;
     case 'e':
-      cli_ethertype = optarg;
+      cli_ethertype = 1;
+      ethertype = strtol(optarg, NULL, 16);
       break;
     case 'p':
-      cli_prio = optarg;
+      cli_prio = 1;
+      prio = atol(optarg);
       break;
     case 'l':
-      cli_length = optarg;
+      cli_length = 1;
+      frame_size = atol(optarg);
       break;
     default:
       printf("%c %d\n", c, c);
@@ -277,21 +281,20 @@ int main(int argc, char *argv[])
   }
 
   // these have to be set in every frame
-  if (cli_pcap_name == NULL)
-    cli_pcap_name = DEFAULT_FILE_NAME;
-  if (cli_length == NULL)
-    cli_length = DEFAULT_LENGTH;
-  if (cli_src_mac == NULL)
-    cli_src_mac = DEFAULT_SRC_MAC;
-  if (cli_dst_mac == NULL)
-    cli_dst_mac = DEFAULT_DST_MAC;
+  if (!cli_pcap_name)
+    strcpy(filename, DEFAULT_FILE_NAME);
 
-  uint32_t frame_size = atol(cli_length);
+  if (!cli_length)
+    frame_size = DEFAULT_LENGTH;
 
-  uint16_t ethertype, vid, prio, dei;
+  if (!cli_src_mac)
+    set_mac(src_mac, DEFAULT_SRC_MAC);
+
+  if (!cli_dst_mac)
+    set_mac(dst_mac, DEFAULT_DST_MAC);
+
   // these are optional and take default values only if one of them is set
-  if (cli_ethertype == NULL && cli_vid == NULL && cli_dei == NULL &&
-      cli_prio == NULL)
+  if (!cli_ethertype && !cli_vid && !cli_dei && !cli_prio)
   {
     // do not place vlan in the frame
     insert_vlan = 0;
@@ -300,19 +303,16 @@ int main(int argc, char *argv[])
   {
     // if even one is present, set the
     // non-present to their default values
-    if (cli_ethertype == NULL)
-      cli_ethertype = DEFAULT_ETHERTYPE;
-    if (cli_vid == NULL)
-      cli_vid = DEFAULT_VID;
-    if (cli_dei == NULL)
-      cli_dei = DEFAULT_DEI;
-    if (cli_prio == NULL)
-      cli_prio = DEFAULT_PRIO;
+    if (!cli_ethertype)
+      ethertype = DEFAULT_ETHERTYPE;
 
-    ethertype = strtol(cli_ethertype, NULL, 16);
-    vid = atol(cli_vid);
-    prio = atol(cli_prio);
-    dei = atol(cli_dei);
+    if (!cli_vid)
+      vid = DEFAULT_VID;
+    if (!cli_dei)
+      dei = DEFAULT_DEI;
+    if (!cli_prio)
+      prio = DEFAULT_PRIO;
+
     insert_vlan = 1;
   }
 
@@ -327,13 +327,10 @@ int main(int argc, char *argv[])
     set_vlan(vlans[0], ethertype, vid, prio, dei);
   }
 
-  set_mac(src_mac, cli_src_mac);
-  set_mac(dst_mac, cli_dst_mac);
-
   populate_global_pcap_header(&hdr);
   populate_packet_pcap_header(&rec, frame_size);
 
-  pcap_init(&pcap_file, cli_pcap_name);
+  pcap_init(&pcap_file, filename);
   pcap_write_pcap_header(pcap_file, &hdr);
   pcap_write_pcap_rec_header(pcap_file, &rec);
 
