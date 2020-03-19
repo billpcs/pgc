@@ -1,4 +1,4 @@
-all: clean pgc test
+all: pgc test
 
 pgc:
 		gcc -g pgc.c -o pgc
