@@ -399,19 +399,19 @@ int main(int argc, char *argv[])
   pcap_write_pcap_header(pcap_file, &hdr);
   pcap_write_pcap_rec_header(pcap_file, &rec);
 
-  fwrite(&dst_mac, MAC_ADDRESS_BYTES, 1, pcap_file);
-  fwrite(&src_mac, MAC_ADDRESS_BYTES, 1, pcap_file);
+  pcap_write(pcap_file, &dst_mac, MAC_ADDRESS_BYTES);
+  pcap_write(pcap_file, &src_mac, MAC_ADDRESS_BYTES);
 
   for (int i = 0; i <= vlan_counter; i++) {
     uint16_t tci = ntohs(vlans[i].vlan.tci);
     uint16_t tpid = ntohs(vlans[i].vlan.tpid);
-    fwrite(&tpid, 2, 1, pcap_file);
-    fwrite(&tci, 2, 1, pcap_file);
+    pcap_write(pcap_file, &tpid, 2);
+    pcap_write(pcap_file, &tci, 2);
   }
 
   // write IP ethertype
   uint16_t ip = htons(0x0800);
-  fwrite(&ip, 2, 1, pcap_file);
+  pcap_write(pcap_file, &ip, 2);
 
   // write the rest of the zeros
   pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter + 1)*sizeof(struct vlan_s) - sizeof(ip));
