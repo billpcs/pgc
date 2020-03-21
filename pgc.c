@@ -52,6 +52,12 @@
       EXIT_ERROR("malloc failed", MEMORY_ERROR); \
   }
 
+#define CHECK_FD(fd)                        \
+  {                                              \
+    if ((fd) == NULL)                           \
+      EXIT_ERROR("fd is NULL", FILE_ERROR); \
+  }
+
 typedef struct pcap_hdr_s
 {
   uint32_t magic_number;  /* magic number */
@@ -144,20 +150,19 @@ uint8_t pcap_init(FILE **f, const char *filename)
 
 uint8_t pcap_write_pcap_header(FILE *f, pcap_hdr_t *hdr)
 {
+  CHECK_FD(f);
   CHECK_FWRITE1(fwrite((const void *)hdr, sizeof(pcap_hdr_t), 1, f));
 }
 
 uint8_t pcap_write_pcap_rec_header(FILE *f, pcaprec_hdr_t *rec)
 {
+  CHECK_FD(f);
   CHECK_FWRITE1(fwrite((const void *)rec, sizeof(pcaprec_hdr_t), 1, f));
 }
 
 uint8_t pcap_write(FILE *f, void *data, uint32_t size)
 {
-  if (f == NULL)
-    EXIT_ERROR("Attempted to write on NULL descriptor", FILE_ERROR);
-
-  // write the packet data
+  CHECK_FD(f);
   CHECK_FWRITE1(fwrite((const void *)data, size, 1, f))
 }
 
