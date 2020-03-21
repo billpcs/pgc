@@ -208,8 +208,8 @@ void parser_safe_set_vid(vlan_parser_t* vlan_parse, uint16_t vid, uint8_t def) {
   }
 }
 
-void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_parse, u_int8_t* pos) {
-  u_int8_t i = *pos;
+void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_parse, uint8_t* pos) {
+  uint8_t i = *pos;
   switch (type) {
     case 'v':
       if (vlan_parse[i].vid_is_default) {
