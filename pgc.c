@@ -75,34 +75,32 @@ typedef struct vlan_s
 
 } vlan_t;
 
+typedef struct vlan_parser_s
+{
+  uint8_t ethertype_is_default;
+  uint8_t vid_is_default;
+  uint8_t dei_is_default;
+  uint8_t prio_is_default;
+  vlan_t vlan;
+} vlan_parser_t;
+
 void cleanup(void) { return; }
 
 void set_tpid_value(vlan_t *vlan, uint16_t value) { vlan->tpid = value; }
 
 void set_vid_value(vlan_t *vlan, uint16_t value)
 {
-  vlan->tci |= (value & 0x0fff);
+  vlan->tci = (vlan->tci & 0xf000) | (value & 0x0fff);
 }
 
 void set_prio_value(vlan_t *vlan, uint16_t value)
 {
-  vlan->tci |= (value << 13);
+  vlan->tci = ((value << 13) & 0xe000) | (vlan->tci & 0x1fff) ;
 }
 
 void set_dei_value(vlan_t *vlan, uint16_t value)
 {
-  vlan->tci |= (value << 12) & 0x1000;
-}
-
-void set_vlan(vlan_t *vlan, uint16_t tpid, uint16_t vid, uint16_t prio,
-              uint16_t dei)
-{
-  set_tpid_value(vlan, tpid);
-  set_vid_value(vlan, vid);
-  set_prio_value(vlan, prio);
-  set_dei_value(vlan, dei);
-  vlan->tci = htons(vlan->tci);
-  vlan->tpid = htons(vlan->tpid);
+  vlan->tci = (vlan->tci & 0xe000) | ((value << 12) & 0x1000) | (vlan->tci & 0x0fff);
 }
 
 // parse the str and save it into mac
@@ -170,6 +168,98 @@ void populate_global_pcap_header(pcap_hdr_t *hdr)
   hdr->network = 1; // LINKTYPE_ETHERNET
 }
 
+void parser_safe_set_ethertype(vlan_parser_t* vlan_parse, uint16_t ethertype, uint8_t def) {
+  if (def && vlan_parse->ethertype_is_default) {
+    set_tpid_value(&vlan_parse->vlan, DEFAULT_ETHERTYPE);
+  }
+  else if (vlan_parse->ethertype_is_default) {
+    vlan_parse->ethertype_is_default = 0;
+    set_tpid_value(&vlan_parse->vlan, ethertype);
+  }
+}
+
+void parser_safe_set_prio(vlan_parser_t* vlan_parse, uint16_t prio, uint8_t def) {
+  if (def && vlan_parse->prio_is_default) {
+    set_prio_value(&vlan_parse->vlan, DEFAULT_PRIO);
+  }
+  else if (vlan_parse->prio_is_default) {
+    vlan_parse->prio_is_default = 0;
+    set_prio_value(&vlan_parse->vlan, prio);
+  }
+}
+
+void parser_safe_set_dei(vlan_parser_t* vlan_parse, uint16_t dei, uint8_t def) {
+  if (def && vlan_parse->dei_is_default) {
+    set_dei_value(&vlan_parse->vlan, DEFAULT_DEI);
+  }
+  else if (vlan_parse->dei_is_default) {
+    vlan_parse->dei_is_default = 0;
+    set_dei_value(&vlan_parse->vlan, dei);
+  }
+}
+
+void parser_safe_set_vid(vlan_parser_t* vlan_parse, uint16_t vid, uint8_t def) {
+  if (def && vlan_parse->vid_is_default) {
+    set_vid_value(&vlan_parse->vlan, DEFAULT_VID);
+  }
+  else if (vlan_parse->vid_is_default) {
+    vlan_parse->vid_is_default = 0;
+    set_vid_value(&vlan_parse->vlan, vid);
+  }
+}
+
+void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_parse, u_int8_t* pos) {
+  u_int8_t i = *pos;
+  switch (type) {
+    case 'v':
+      if (vlan_parse[i].vid_is_default) {
+        parser_safe_set_vid(&vlan_parse[i], atoi(arg), 0);
+        parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
+        parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
+        parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
+      } else {
+        *pos = i + 1;
+        parse_vlan_related_option(type, arg, vlan_parse, pos);
+      }
+      break;
+    case 'e':
+      if (vlan_parse[i].ethertype_is_default) {
+        parser_safe_set_ethertype(&vlan_parse[i], strtol(arg, NULL, 16), 0);
+        parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
+        parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
+        parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
+      } else {
+        *pos = i + 1;
+        parse_vlan_related_option(type, arg, vlan_parse, pos);
+      }
+      break;
+    case 'p':
+      if (vlan_parse[i].prio_is_default) {
+        parser_safe_set_prio(&vlan_parse[i], atol(arg), 0);
+        parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
+        parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
+        parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
+      } else {
+        *pos = i + 1;
+        parse_vlan_related_option(type, arg, vlan_parse, pos);
+      }
+      break;
+    case 'i':
+      if (vlan_parse[i].dei_is_default) {
+        parser_safe_set_dei(&vlan_parse[i], atol(arg), 0);
+        parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
+        parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
+        parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
+      } else {
+        *pos = i + 1;
+        parse_vlan_related_option(type, arg, vlan_parse, pos);
+      }
+      break;
+    default:
+      return;
+  }
+}
+
 void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size)
 {
   rec->ts_sec = 0;
@@ -222,17 +312,22 @@ int main(int argc, char *argv[])
   uint8_t src_mac[MAX_FRAME_SIZE] = {0};
   uint8_t dst_mac[MAX_FRAME_SIZE] = {0};
   uint8_t data[MAX_FRAME_SIZE] = {0};
-  vlan_t *vlans[MAX_VLANS] = {0};
+  uint8_t vlan_counter = 0;
+  vlan_parser_t* vlans = malloc(MAX_VLANS * sizeof(vlan_parser_t));
+  CHECK_MALLOC(vlans);
 
-  uint8_t insert_vlan;
+  for (int n = 0; n < MAX_VLANS; n++) {
+    vlans[n].ethertype_is_default = 1;
+    vlans[n].vid_is_default = 1;
+    vlans[n].prio_is_default = 1;
+    vlans[n].dei_is_default = 1;
+  }
 
   // CLI variables
   uint8_t cli_pcap_name = 0, cli_length = 0, cli_src_mac = 0, cli_dst_mac = 0;
-  uint8_t cli_vid = 0, cli_dei = 0, cli_ethertype = 0, cli_prio = 0;
   int32_t c;
 
   uint32_t frame_size;
-  uint16_t ethertype, vid, prio, dei;
   char filename[50];
 
   while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:")) != -1)
@@ -254,21 +349,11 @@ int main(int argc, char *argv[])
       cli_dst_mac = 1;
       set_mac(dst_mac, optarg);
       break;
-    case 'v':
-      cli_vid = 1;
-      vid = atol(optarg);
-      break;
-    case 'i':
-      cli_dei = 1;
-      dei = atol(optarg);
-      break;
-    case 'e':
-      cli_ethertype = 1;
-      ethertype = strtol(optarg, NULL, 16);
-      break;
-    case 'p':
-      cli_prio = 1;
-      prio = atol(optarg);
+    case 'v': // vlan
+    case 'e': // ethertype
+    case 'i': // dei
+    case 'p': // prio
+      parse_vlan_related_option(c, optarg, vlans, &vlan_counter);
       break;
     case 'l':
       cli_length = 1;
@@ -293,39 +378,8 @@ int main(int argc, char *argv[])
   if (!cli_dst_mac)
     set_mac(dst_mac, DEFAULT_DST_MAC);
 
-  // these are optional and take default values only if one of them is set
-  if (!cli_ethertype && !cli_vid && !cli_dei && !cli_prio)
-  {
-    // do not place vlan in the frame
-    insert_vlan = 0;
-  }
-  else
-  {
-    // if even one is present, set the
-    // non-present to their default values
-    if (!cli_ethertype)
-      ethertype = DEFAULT_ETHERTYPE;
-
-    if (!cli_vid)
-      vid = DEFAULT_VID;
-    if (!cli_dei)
-      dei = DEFAULT_DEI;
-    if (!cli_prio)
-      prio = DEFAULT_PRIO;
-
-    insert_vlan = 1;
-  }
-
   pcap_hdr_t hdr;
   pcaprec_hdr_t rec;
-
-  if (insert_vlan)
-  {
-    vlans[0] = malloc(sizeof(vlan_t));
-    CHECK_MALLOC(vlans[0]);
-    memset(vlans[0], 0, sizeof(vlan_t));
-    set_vlan(vlans[0], ethertype, vid, prio, dei);
-  }
 
   populate_global_pcap_header(&hdr);
   populate_packet_pcap_header(&rec, frame_size);
@@ -337,22 +391,23 @@ int main(int argc, char *argv[])
   fwrite(&dst_mac, MAC_ADDRESS_BYTES, 1, pcap_file);
   fwrite(&src_mac, MAC_ADDRESS_BYTES, 1, pcap_file);
 
-  int i = 0;
-  while (vlans[i] != NULL)
-    fwrite(vlans[i++], sizeof(struct vlan_s), 1, pcap_file);
+  for (int i = 0; i <= vlan_counter; i++) {
+    uint16_t tci = ntohs(vlans[i].vlan.tci);
+    uint16_t tpid = ntohs(vlans[i].vlan.tpid);
+    fwrite(&tpid, 2, 1, pcap_file);
+    fwrite(&tci, 2, 1, pcap_file);
+  }
 
   // write IP ethertype
   uint16_t ip = htons(0x0800);
   fwrite(&ip, 2, 1, pcap_file);
 
   // write the rest of the zeros
-  pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - sizeof(struct vlan_s) - sizeof(ip));
+  pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter + 1)*sizeof(struct vlan_s) - sizeof(ip));
   pcap_finalize(pcap_file);
 
   // free everything
-  uint16_t n = 0;
-  while (vlans[n] != NULL)
-    free(vlans[n++]);
+  free(vlans);
 
   return 0;
 }
