@@ -1,10 +1,11 @@
-all: pgc test
-
-pgc:
+linux:
 		gcc -g pgc.c -o pgc
 
+windows:
+		gcc pgc.c -o pgc -lws2_32
+
 clean:
-		rm pgc
+		$(RM) pgc
 
 test:
 		cd tests && ./main.sh && cd ..

@@ -3,7 +3,13 @@
   Supports VLANs!
 */
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#include <winsock2.h>
+#elif __linux
 #include <arpa/inet.h>
+#else
+#error "Not supported platform"
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
