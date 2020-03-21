@@ -1,0 +1,2 @@
+#define pgc_VERSION_MAJOR @pgc_VERSION_MAJOR@
+#define pgc_VERSION_MINOR @pgc_VERSION_MINOR@

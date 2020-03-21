@@ -16,6 +16,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <config.h>
+
 #define DEFAULT_FILE_NAME "paibuild.pcap"
 #define DEFAULT_LENGTH 666
 #define DEFAULT_DST_MAC "08:00:27:4C:27:11"
@@ -285,7 +287,7 @@ void print_help(void)
 
   printf("\t __  ___  __\n"
          "\t((_)((_( ((_ \n"
-         "\t ))   _))\n\n");
+         "\t ))   _)) v%d.%d\n\n", pgc_VERSION_MAJOR, pgc_VERSION_MINOR);
 
   printf("pgc: Generate pcap files from the command line!\n\n\n");
 
