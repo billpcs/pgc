@@ -320,8 +320,8 @@ int main(int argc, char *argv[])
 
   FILE *pcap_file;
   uint16_t num_vlans = 0;
-  uint8_t src_mac[MAX_FRAME_SIZE] = {0};
-  uint8_t dst_mac[MAX_FRAME_SIZE] = {0};
+  uint8_t src_mac[MAC_ADDRESS_BYTES] = {0};
+  uint8_t dst_mac[MAC_ADDRESS_BYTES] = {0};
   uint8_t data[MAX_FRAME_SIZE] = {0};
   uint8_t vlan_counter = 0;
   vlan_parser_t* vlans = malloc(MAX_VLANS * sizeof(vlan_parser_t));
