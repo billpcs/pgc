@@ -272,6 +272,15 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
   }
 }
 
+void pcap_write_vlans(FILE* pcap_file, vlan_parser_t* vlans, int num) {
+  for (int i = 0; i <= num; i++) {
+    uint16_t tci = ntohs(vlans[i].vlan.tci);
+    uint16_t tpid = ntohs(vlans[i].vlan.tpid);
+    pcap_write(pcap_file, &tpid, 2);
+    pcap_write(pcap_file, &tci, 2);
+  }
+}
+
 void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size)
 {
   rec->ts_sec = time(NULL);
@@ -403,12 +412,7 @@ int main(int argc, char *argv[])
   pcap_write(pcap_file, &dst_mac, MAC_ADDRESS_BYTES);
   pcap_write(pcap_file, &src_mac, MAC_ADDRESS_BYTES);
 
-  for (int i = 0; i <= vlan_counter; i++) {
-    uint16_t tci = ntohs(vlans[i].vlan.tci);
-    uint16_t tpid = ntohs(vlans[i].vlan.tpid);
-    pcap_write(pcap_file, &tpid, 2);
-    pcap_write(pcap_file, &tci, 2);
-  }
+  pcap_write_vlans(pcap_file, vlans, vlan_counter);
 
   // write IP ethertype
   uint16_t ip = htons(0x0800);
