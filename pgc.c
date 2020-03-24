@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #define DEFAULT_FILE_NAME "paibuild.pcap"
 #define DEFAULT_LENGTH 666
@@ -273,7 +274,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
 
 void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size)
 {
-  rec->ts_sec = 0;
+  rec->ts_sec = time(NULL);
   rec->ts_usec = 0;
   rec->incl_len = size;
   rec->orig_len = size;
