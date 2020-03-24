@@ -334,8 +334,7 @@ int main(int argc, char *argv[])
   uint8_t dst_mac[MAC_ADDRESS_BYTES] = {0};
   uint8_t data[MAX_FRAME_SIZE] = {0};
   uint8_t vlan_counter = 0;
-  vlan_parser_t* vlans = malloc(MAX_VLANS * sizeof(vlan_parser_t));
-  CHECK_MALLOC(vlans);
+  vlan_parser_t vlans[MAX_VLANS];
 
   for (int n = 0; n < MAX_VLANS; n++) {
     vlans[n].ethertype_is_default = 1;
@@ -421,9 +420,6 @@ int main(int argc, char *argv[])
   // write the rest of the zeros
   pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter + 1)*sizeof(struct vlan_s) - sizeof(ip));
   pcap_finalize(pcap_file);
-
-  // free everything
-  free(vlans);
 
   return 0;
 }
