@@ -1,38 +1,30 @@
 # pgc
 
+### Generate pcap files from the command line!
+
+It supports:
+- vlans (vlan id, prio, dei)
+- nested vlans
+- raw data
+
+Some examples:
+
 ```
-$ ./pgc -h
-
-Hello.                                                                                                                                                                                                                            
-         __  ___  __                                                                                                                                                                                                              
-        ((_)((_( ((_                                                                                                                                                                                                              
-         ))   _))                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                  
-pgc: Generate pcap files from the command line!                                                                                                                                                                                   
-                                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                  
-(Default values in square brackets)
-
--f: Set the output file name          [paibuild.pcap]
--s: Set the source MAC                [08:00:27:2A:09:13]
--d: Set the destination MAC           [08:00:27:4C:27:11]
--e: Set the ethertype                 [0x8100]
--v: Set the VLAN ID                   [100]
--p: Set the VLAN Priority             [0]
--i: Set the DEI bit                   [0]
--l: The length of the frame in bytes  [666]
--h: This message
-
-
-Mandatory examples:
-
-Ethertype 0x88a8, vlan 222, priority 7, size 256
-./pgc -e 0x88a8 -v 222 -p 7 -l 256 -f frame_88a8_222.pcap
-
-
-Ethertype 0x8100, vlan 100, priority 0, size 40 with DEI set
-./pgc -i 1 -l 40 -f frame_8100_100_dei.pcap
-
-
-Report bugs to: me
+./pgc                                      #untagged frame
+./pgc -v 100                               #.1q 8100/100
+./pgc -e 0x88a8 -v 100 -e 0x8100 -v 200    #QinQ 88a8/100/8100/200
+./pgc -v1 -v2 -v3 -v4                      # 8100/1/8100/2/8100/3/8100/4
+./pgc -r 810000640800                      #.1q 8100/100 with IP
 ```
+
+
+Quick start:
+
+```sh
+git clone https://github.com/billpcs/pgc
+cd pgc
+make linux # for linux
+# or
+make windows # for windows
+```
+
