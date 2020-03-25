@@ -4,7 +4,12 @@ binary="../pgc"
 pcapname="paibuild.pcap"
 tcpdump="tcpdump -tqenr '$pcapname' 2>&1 | grep length"
 
-
+@test "untagged frame" {
+  $("$binary" -l 200)
+  tcp=$(eval "$tcpdump")
+  wanted="08:00:27:2a:09:13 > 08:00:27:4c:27:11, IPv4, length 200: IP0 "
+  [ "$tcp" = "$wanted" ]	
+}
 
 @test "change vlan to 55" {
   $("$binary" -v 55)
