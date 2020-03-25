@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
       frame_size = atol(optarg);
       break;
     default:
-      printf("%c %d\n", c, c);
+      print_help();
       break;
     }
   }
