@@ -29,6 +29,7 @@
 #define MAX_FRAME_SIZE 1500
 #define MAC_ADDRESS_BYTES 6
 #define MAX_VLANS 20
+#define MAX_RAW_BYTES (MAX_FRAME_SIZE - 2*MAC_ADDRESS_BYTES)
 
 #define FILE_ERROR -1
 #define MEMORY_ERROR -2
@@ -281,6 +282,44 @@ void pcap_write_vlans(FILE* pcap_file, vlan_parser_t* vlans, int num) {
   }
 }
 
+int string_look_ahead_by(uint16_t num, char* str) {
+  char* ptr = str;
+  int i;
+  for (i = 0; i < num; i++) {
+    if (*ptr == '\0') return i;
+    ptr++;
+  }
+  return num;
+}
+
+void parse_raw(uint8_t* buf, char* string, uint32_t* size) {
+  int i, s = 0;
+  char substr[3];
+  uint32_t size_sum = 0;
+  for (i = 0 ;; i++, s+=2) {
+    int num_next = string_look_ahead_by(2, &string[s]);
+    if (num_next == 0) break;
+    memcpy(substr, &string[s], num_next);
+    substr[num_next] = '\0';
+    buf[i] = strtol(substr, NULL, 16);
+    size_sum += 1;
+    if (num_next != 2) break;
+  }
+  *size = size_sum;
+}
+
+void pcap_write_raw(FILE* pcap_file, uint8_t* buf, int size) {
+  uint16_t* nbuf = (uint16_t *)buf;
+  int i;
+  for (i = 0; i < size/2; i++) {
+    uint16_t data = (nbuf[i]);
+    pcap_write(pcap_file, &data, sizeof(uint16_t));
+  }
+  if (size % 2 != 0) {
+    pcap_write(pcap_file, &buf[size -1], sizeof(uint8_t));
+  }
+}
+
 void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size)
 {
   rec->ts_sec = time(NULL);
@@ -309,6 +348,7 @@ void print_help(void)
   printf("-p: Set the VLAN Priority             [%d]\n", DEFAULT_PRIO);
   printf("-i: Set the DEI bit                   [%d]\n", DEFAULT_DEI);
   printf("-l: The length of the frame in bytes  [%d]\n", DEFAULT_LENGTH);
+  printf("-r: Set raw data after ethernet header\n");
   printf("-h: This message\n");
 
   printf("\n\nMandatory examples:\n");
@@ -335,6 +375,8 @@ int main(int argc, char *argv[])
   uint8_t data[MAX_FRAME_SIZE] = {0};
   uint8_t vlan_counter = 0;
   vlan_parser_t vlans[MAX_VLANS];
+  uint8_t raw_data[MAX_RAW_BYTES];
+  uint16_t rest_size;
 
   for (int n = 0; n < MAX_VLANS; n++) {
     vlans[n].ethertype_is_default = 1;
@@ -345,13 +387,14 @@ int main(int argc, char *argv[])
 
   // CLI variables
   uint8_t cli_pcap_name = 0, cli_length = 0, cli_src_mac = 0, cli_dst_mac = 0;
-  uint8_t cli_vlan = 0;
+  uint8_t cli_vlan = 0, cli_raw_data = 0;
+  uint32_t cli_raw_size;
   int32_t c;
 
   uint32_t frame_size;
   char filename[50];
 
-  while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:")) != -1)
+  while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:r:")) != -1)
   {
     switch (c)
     {
@@ -380,6 +423,10 @@ int main(int argc, char *argv[])
     case 'l':
       cli_length = 1;
       frame_size = atol(optarg);
+      break;
+    case 'r':
+      cli_raw_data = 1;
+      parse_raw(raw_data, optarg, &cli_raw_size);
       break;
     default:
       print_help();
@@ -418,12 +465,24 @@ int main(int argc, char *argv[])
     pcap_write_vlans(pcap_file, vlans, vlan_counter);
   }
 
-  // write IP ethertype
-  uint16_t ip = htons(0x0800);
-  pcap_write(pcap_file, &ip, 2);
+  u_int16_t ip;
+  if (!cli_raw_data) {
+    // write IP ethertype
+    ip = htons(0x0800);
+    pcap_write(pcap_file, &ip, 2);
+    rest_size = sizeof(ip);
+  }
+  else {
+    pcap_write_raw(pcap_file, (uint8_t*)&raw_data, cli_raw_size);
+    rest_size = cli_raw_size;
+  }
+
+  uint32_t zero_s = frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter)*sizeof(struct vlan_s) - rest_size;
 
   // write the rest of the zeros
-  pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter)*sizeof(struct vlan_s) - sizeof(ip));
+  if (zero_s > 0)
+    pcap_write(pcap_file, data, zero_s);
+
   pcap_finalize(pcap_file);
 
   return 0;
