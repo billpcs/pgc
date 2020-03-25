@@ -81,6 +81,41 @@ tcpdump="tcpdump -tqenr '$pcapname' 2>&1 | grep length"
   [ "$tcp2" = "$wanted2" ]
 }
 
+@test "raw data, ip only" {
+  $("$binary" -r 080045000014)
+  tcp=$(eval "$tcpdump")
+  wanted="08:00:27:2a:09:13 > 08:00:27:4c:27:11, IPv4, length 666: 0.0.0.0 > 0.0.0.0:  ip-proto-0 0"
+  echo "$tcp"
+  echo "$wanted"
+  [ "$tcp" = "$wanted" ]
+}
+
+@test "raw data, vlan + ip 1" {
+  $("$binary" -v 100 -e 0x8100 -r 0800 -l 50)
+  tcp=$(eval "$tcpdump")
+  wanted="08:00:27:2a:09:13 > 08:00:27:4c:27:11, 802.1Q, length 50: vlan 100, p 0, ethertype IPv4, IP0 "
+  echo "$tcp"
+  echo "$wanted"
+  [ "$tcp" = "$wanted" ]
+}
+
+@test "raw data, vlan + ip 2" {
+  $("$binary"  -r 810000640800 -l 50)
+  tcp=$(eval "$tcpdump")
+  wanted="08:00:27:2a:09:13 > 08:00:27:4c:27:11, 802.1Q, length 50: vlan 100, p 0, ethertype IPv4, IP0 "
+  echo "$tcp"
+  echo "$wanted"
+  [ "$tcp" = "$wanted" ]
+}
+
+@test "raw data, STP frame" {
+  $("$binary" -d "01:80:c2:00:00:00" -r "0079424203000003027c8000000c305dd100000000008000000c305dd10080050000140002000f00000050000000000000000000000000000000000000000000000000000000000000000000000055bf4e8a44b25d442868549c1bf7720f00030d408000001aa197d180137c8005000c305dd10000030d40808013" -l135)
+  tcp=$(eval "$tcpdump")
+  wanted="08:00:27:2a:09:13 > 01:80:c2:00:00:00, 802.3, length 121: LLC, dsap STP (0x42) Individual, ssap STP (0x42) Command, ctrl 0x03: STP 802.1s, Rapid STP, CIST Flags [Learn, Forward, Agreement], length 118"
+  echo "$tcp"
+  echo "$wanted"
+  [ "$tcp" = "$wanted" ]
+}
 
 
 
