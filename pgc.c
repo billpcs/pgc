@@ -273,7 +273,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
 }
 
 void pcap_write_vlans(FILE* pcap_file, vlan_parser_t* vlans, int num) {
-  for (int i = 0; i <= num; i++) {
+  for (int i = 0; i < num; i++) {
     uint16_t tci = ntohs(vlans[i].vlan.tci);
     uint16_t tpid = ntohs(vlans[i].vlan.tpid);
     pcap_write(pcap_file, &tpid, 2);
@@ -345,6 +345,7 @@ int main(int argc, char *argv[])
 
   // CLI variables
   uint8_t cli_pcap_name = 0, cli_length = 0, cli_src_mac = 0, cli_dst_mac = 0;
+  uint8_t cli_vlan = 0;
   int32_t c;
 
   uint32_t frame_size;
@@ -373,6 +374,7 @@ int main(int argc, char *argv[])
     case 'e': // ethertype
     case 'i': // dei
     case 'p': // prio
+      cli_vlan = 1;
       parse_vlan_related_option(c, optarg, vlans, &vlan_counter);
       break;
     case 'l':
@@ -411,14 +413,17 @@ int main(int argc, char *argv[])
   pcap_write(pcap_file, &dst_mac, MAC_ADDRESS_BYTES);
   pcap_write(pcap_file, &src_mac, MAC_ADDRESS_BYTES);
 
-  pcap_write_vlans(pcap_file, vlans, vlan_counter);
+  if (cli_vlan) {
+    vlan_counter++;
+    pcap_write_vlans(pcap_file, vlans, vlan_counter);
+  }
 
   // write IP ethertype
   uint16_t ip = htons(0x0800);
   pcap_write(pcap_file, &ip, 2);
 
   // write the rest of the zeros
-  pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter + 1)*sizeof(struct vlan_s) - sizeof(ip));
+  pcap_write(pcap_file, data, frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter)*sizeof(struct vlan_s) - sizeof(ip));
   pcap_finalize(pcap_file);
 
   return 0;
