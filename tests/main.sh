@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+#!./bats/libexec/bats
 
 binary="../pgc"
 pcapname="paibuild.pcap"
