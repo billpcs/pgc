@@ -34,6 +34,8 @@
 #define MAX_VLANS 20
 #define MAX_RAW_BYTES (MAX_FRAME_SIZE - 2*MAC_ADDRESS_BYTES)
 
+#define MAX_FILENAME_LEN 50
+
 #define FILE_ERROR -1
 #define MEMORY_ERROR -2
 #define CLI_ERROR -3
@@ -395,7 +397,7 @@ int main(int argc, char *argv[])
   int32_t c;
 
   uint32_t frame_size;
-  char filename[50];
+  char filename[MAX_FILENAME_LEN+1];
 
   while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:r:")) != -1)
   {
@@ -406,7 +408,7 @@ int main(int argc, char *argv[])
       exit(0);
     case 'f':
       cli_pcap_name = 1;
-      strcpy(filename, optarg);
+      strncpy(filename, optarg, MAX_FILENAME_LEN);
       break;
     case 's':
       cli_src_mac = 1;
