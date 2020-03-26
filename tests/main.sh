@@ -118,5 +118,20 @@ tcpdump="tcpdump -tqenr '$pcapname' 2>&1 | grep length"
 }
 
 
+@test "filename simple" {
+  $("$binary"  -f "test.pcap")
+  [ -f "test.pcap" ]
+}
+
+@test "filename long" {
+  # make a filename that must be tructuated
+  filename=$(printf 'e%.0s' {1..55})
+  # this must be the result of the tructuated file
+  realfilename=$(echo "$filename" | cut -c1-50)
+  $("$binary"  -f "$filename")
+  [ -f "$realfilename" ]
+}
+
+
 
 
