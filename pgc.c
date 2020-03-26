@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
     pcap_write_vlans(pcap_file, vlans, vlan_counter);
   }
 
-  u_int16_t ip;
+  uint16_t ip;
   if (!cli_raw_data) {
     // write IP ethertype
     ip = htons(0x0800);
