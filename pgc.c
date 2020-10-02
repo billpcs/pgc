@@ -297,10 +297,23 @@ int string_look_ahead_by(uint16_t num, char* str) {
   return num;
 }
 
-void parse_raw(uint8_t* buf, char* string, uint32_t* size) {
+
+void filter_string(char* in, char** output, char needle) {
+  int i = 0, j = 0;
+  char* out = *output = strdup(in);
+  while(in[i]) {
+    if (in[i++] == needle) continue;
+    out[j++] = in[i-1];
+  }
+  out[j] = '\0';
+}
+
+void parse_raw(uint8_t* buf, char* sstring, uint32_t* size) {
   int i, s = 0;
   char substr[3];
   uint32_t size_sum = 0;
+  char* string = NULL;
+  filter_string(sstring, &string, '/');
   for (i = 0 ;; i++, s+=2) {
     int num_next = string_look_ahead_by(2, &string[s]);
     if (num_next == 0) break;
@@ -311,6 +324,7 @@ void parse_raw(uint8_t* buf, char* string, uint32_t* size) {
     if (num_next != 2) break;
   }
   *size = size_sum;
+  free(string);
 }
 
 void pcap_write_raw(FILE* pcap_file, uint8_t* buf, int size) {
