@@ -82,9 +82,9 @@ tcpdump="tcpdump -tqenr '$pcapname' 2>&1 | grep length"
 }
 
 @test "raw data, ip only" {
-  "$binary" -r 080045000014
+  "$binary" -r 08004500028c
   tcp=$(eval "$tcpdump")
-  wanted="08:00:27:2a:09:13 > 08:00:27:4c:27:11, IPv4, length 666: 0.0.0.0 > 0.0.0.0:  ip-proto-0 0"
+  wanted="08:00:27:2a:09:13 > 08:00:27:4c:27:11, IPv4, length 666: 0.0.0.0 > 0.0.0.0:  ip-proto-0 632"
   echo "$tcp"
   echo "$wanted"
   [ "$tcp" = "$wanted" ]
@@ -131,6 +131,16 @@ tcpdump="tcpdump -tqenr '$pcapname' 2>&1 | grep length"
   "$binary"  -f "$filename"
   [ -f "$realfilename" ]
 }
+
+@test "raw seperator 1" {
+  "$binary" -r "8100/0064/0800" -l128
+  tcp=$(eval "$tcpdump")
+  wanted="08:00:27:2a:09:13 > 08:00:27:4c:27:11, 802.1Q, length 128: vlan 100, p 0, ethertype IPv4, IP0 "
+  echo "$tcp"
+  echo "$wanted"
+  [ "$tcp" = "$wanted" ]
+}
+
 
 
 
