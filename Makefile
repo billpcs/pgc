@@ -9,4 +9,5 @@ clean:
 
 test:
 		cd tests && ./main.sh && cd ..
+		cd tests && ./secondary.sh && cd ..
 
