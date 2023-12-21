@@ -1,5 +1,5 @@
 linux:
-		gcc -g pgc.c -o pgc
+		gcc -O2 pgc.c -o pgc
 
 windows:
 		gcc pgc.c -o pgc -lws2_32
