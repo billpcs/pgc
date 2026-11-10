@@ -496,7 +496,20 @@ int main(int argc, char *argv[])
     rest_size = cli_raw_size;
   }
 
-  uint32_t zero_s = frame_size - 2 * MAC_ADDRESS_BYTES - (vlan_counter)*sizeof(struct vlan_s) - rest_size;
+  uint32_t bytes_written =
+      2 * MAC_ADDRESS_BYTES +
+      vlan_counter * sizeof(struct vlan_s) +
+      rest_size;
+
+  if (bytes_written > frame_size) {
+    fprintf(stderr,
+            "Frame too small: requested %u bytes, but headers/data require %u bytes\n",
+            frame_size, bytes_written);
+    pcap_finalize(pcap_file);
+    return CLI_ERROR;
+  }
+
+  uint32_t zero_s = frame_size - bytes_written;
 
   // write the rest of the zeros
   if (zero_s > 0)
