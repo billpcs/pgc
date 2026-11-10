@@ -25,7 +25,8 @@
 #define DEFAULT_DST_MAC "08:00:27:4C:27:11"
 #define DEFAULT_SRC_MAC "08:00:27:2A:09:13"
 #define DEFAULT_VID 100
-#define DEFAULT_ETHERTYPE 0x8100
+#define DEFAULT_TPID 0x8100
+#define DEFAULT_ETHERTYPE 0x0800
 #define DEFAULT_PRIO 0
 #define DEFAULT_DEI 0
 
@@ -99,7 +100,7 @@ typedef struct vlan_s
 
 typedef struct vlan_parser_s
 {
-  uint8_t ethertype_is_default;
+  uint8_t tpid_is_default;
   uint8_t vid_is_default;
   uint8_t dei_is_default;
   uint8_t prio_is_default;
@@ -212,13 +213,13 @@ void populate_global_pcap_header(pcap_hdr_t *hdr)
   hdr->network = 1; // LINKTYPE_ETHERNET
 }
 
-void parser_safe_set_ethertype(vlan_parser_t* vlan_parse, uint16_t ethertype, uint8_t def) {
-  if (def && vlan_parse->ethertype_is_default) {
-    set_tpid_value(&vlan_parse->vlan, DEFAULT_ETHERTYPE);
+void parser_safe_set_tpid(vlan_parser_t* vlan_parse, uint16_t tpid, uint8_t def) {
+  if (def && vlan_parse->tpid_is_default) {
+    set_tpid_value(&vlan_parse->vlan, DEFAULT_TPID);
   }
-  else if (vlan_parse->ethertype_is_default) {
-    vlan_parse->ethertype_is_default = 0;
-    set_tpid_value(&vlan_parse->vlan, ethertype);
+  else if (vlan_parse->tpid_is_default) {
+    vlan_parse->tpid_is_default = 0;
+    set_tpid_value(&vlan_parse->vlan, tpid);
   }
 }
 
@@ -262,7 +263,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
     case 'v':
       if (vlan_parse[i].vid_is_default) {
         parser_safe_set_vid(&vlan_parse[i], parse_number(arg, 10, VLAN_VALUE_MIN, VLAN_VALUE_MAX, "VLAN ID"), 0);
-        parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
+        parser_safe_set_tpid(&vlan_parse[i], DEFAULT_TPID, 1);
         parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
         parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
       } else {
@@ -270,9 +271,9 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
         parse_vlan_related_option(type, arg, vlan_parse, pos);
       }
       break;
-    case 'e':
-      if (vlan_parse[i].ethertype_is_default) {
-        parser_safe_set_ethertype(&vlan_parse[i], parse_number(arg, 0, 0, 0xffff, "ethertype"), 0);
+    case 't':
+      if (vlan_parse[i].tpid_is_default) {
+        parser_safe_set_tpid(&vlan_parse[i], parse_number(arg, 0, 0, 0xffff, "TPID"), 0);
         parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
         parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
         parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
@@ -285,7 +286,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
       if (vlan_parse[i].prio_is_default) {
         parser_safe_set_prio(&vlan_parse[i], parse_number(arg, 10, 0, 7, "priority"), 0);
         parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
-        parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
+        parser_safe_set_tpid(&vlan_parse[i], DEFAULT_TPID, 1);
         parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
       } else {
         *pos = i + 1;
@@ -296,7 +297,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
       if (vlan_parse[i].dei_is_default) {
         parser_safe_set_dei(&vlan_parse[i], parse_number(arg, 10, 0, 1, "DEI"), 0);
         parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
-        parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
+        parser_safe_set_tpid(&vlan_parse[i], DEFAULT_TPID, 1);
         parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
       } else {
         *pos = i + 1;
@@ -384,7 +385,8 @@ void print_help(void)
   printf("-f: Set the output file name          [%s]\n", DEFAULT_FILE_NAME);
   printf("-s: Set the source MAC                [%s]\n", DEFAULT_SRC_MAC);
   printf("-d: Set the destination MAC           [%s]\n", DEFAULT_DST_MAC);
-  printf("-e: Set the ethertype                 [0x%x]\n", DEFAULT_ETHERTYPE);
+  printf("-t: Set the VLAN TPID                 [0x%x]\n", DEFAULT_TPID);
+  printf("-e: Set the Ethernet EtherType        [0x%x]\n", DEFAULT_ETHERTYPE);
   printf("-v: Set the VLAN ID                   [%d]\n", DEFAULT_VID);
   printf("-p: Set the VLAN Priority             [%d]\n", DEFAULT_PRIO);
   printf("-i: Set the DEI bit                   [%d]\n", DEFAULT_DEI);
@@ -394,12 +396,12 @@ void print_help(void)
 
   printf("\n\nMandatory examples:\n");
   printf("\n");
-  printf("Ethertype 0x88a8, vlan 222, priority 7, size 256\n");
-  printf("./pgc -e 0x88a8 -v 222 -p 7 -l 256 -f frame_88a8_222.pcap\n");
+  printf("TPID 0x88a8, vlan 222, priority 7, EtherType 0x0800, size 256\n");
+  printf("./pgc -t 0x88a8 -v 222 -p 7 -e 0x0800 -l 256 -f frame_88a8_222.pcap\n");
 
   printf("\n\n");
-  printf("Ethertype 0x%x, vlan %d, priority %d, size 40 with DEI set\n",
-         DEFAULT_ETHERTYPE, DEFAULT_VID, DEFAULT_PRIO);
+  printf("TPID 0x%x, vlan %d, priority %d, EtherType 0x%x, size 40 with DEI set\n",
+         DEFAULT_TPID, DEFAULT_VID, DEFAULT_PRIO, DEFAULT_ETHERTYPE);
   printf("./pgc -i 1 -l 40 -f frame_8100_100_dei.pcap\n");
 
   printf("\n\n");
@@ -420,7 +422,7 @@ int main(int argc, char *argv[])
   uint16_t rest_size;
 
   for (int n = 0; n < MAX_VLANS; n++) {
-    vlans[n].ethertype_is_default = 1;
+    vlans[n].tpid_is_default = 1;
     vlans[n].vid_is_default = 1;
     vlans[n].prio_is_default = 1;
     vlans[n].dei_is_default = 1;
@@ -433,9 +435,10 @@ int main(int argc, char *argv[])
   int32_t c;
 
   uint32_t frame_size;
+  uint16_t ethertype = DEFAULT_ETHERTYPE;
   char filename[MAX_FILENAME_LEN+1];
 
-  while ((c = getopt(argc, argv, "hf:s:d:v:i:e:p:l:r:")) != -1)
+  while ((c = getopt(argc, argv, "hf:s:d:v:i:e:t:p:l:r:")) != -1)
   {
     switch (c)
     {
@@ -454,8 +457,11 @@ int main(int argc, char *argv[])
       cli_dst_mac = 1;
       set_mac(dst_mac, optarg);
       break;
+    case 'e': // ethernet ethertype
+      ethertype = parse_number(optarg, 0, 0, 0xffff, "ethertype");
+      break;
     case 'v': // vlan
-    case 'e': // ethertype
+    case 't': // tpid
     case 'i': // dei
     case 'p': // prio
       cli_vlan = 1;
@@ -506,12 +512,11 @@ int main(int argc, char *argv[])
     pcap_write_vlans(pcap_file, vlans, vlan_counter);
   }
 
-  uint16_t ip;
+  uint16_t ether_type;
   if (!cli_raw_data) {
-    // write IP ethertype
-    ip = htons(0x0800);
-    pcap_write(pcap_file, &ip, 2);
-    rest_size = sizeof(ip);
+    ether_type = htons(ethertype);
+    pcap_write(pcap_file, &ether_type, sizeof(ether_type));
+    rest_size = sizeof(ether_type);
   }
   else {
     pcap_write(pcap_file, (uint8_t*)&raw_data, cli_raw_size);
