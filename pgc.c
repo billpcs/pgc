@@ -446,7 +446,7 @@ int main(int argc, char *argv[])
       exit(0);
     case 'f':
       cli_pcap_name = 1;
-      strncpy(filename, optarg, MAX_FILENAME_LEN);
+      snprintf(filename, sizeof(filename), "%s", optarg);
       break;
     case 's':
       cli_src_mac = 1;
