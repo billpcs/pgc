@@ -175,7 +175,7 @@ void print_mac(uint8_t *mac)
 
 uint8_t pcap_init(FILE **f, const char *filename)
 {
-  *f = fopen(filename, "w");
+  *f = fopen(filename, "wb");
 
   if (*f == NULL)
     EXIT_ERROR("Could not create file", FILE_ERROR);
