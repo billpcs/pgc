@@ -29,6 +29,9 @@
 #define DEFAULT_PRIO 0
 #define DEFAULT_DEI 0
 
+#define VLAN_VALUE_MIN 0
+#define VLAN_VALUE_MAX 4095
+
 #define MAX_FRAME_SIZE 1500
 #define MAC_ADDRESS_BYTES 6
 #define MAX_VLANS 20
@@ -106,6 +109,19 @@ typedef struct vlan_parser_s
 void cleanup(void) { return; }
 
 void set_tpid_value(vlan_t *vlan, uint16_t value) { vlan->tpid = value; }
+
+long parse_number(const char *str, int base, long min, long max, const char *name)
+{
+  char *end;
+  long value = strtol(str, &end, base);
+
+  if (*str == '\0' || *end != '\0' || value < min || value > max) {
+    fprintf(stderr, "Invalid %s value: %s\n", name, str);
+    exit(CLI_ERROR);
+  }
+
+  return value;
+}
 
 void set_vid_value(vlan_t *vlan, uint16_t value)
 {
@@ -247,7 +263,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
   switch (type) {
     case 'v':
       if (vlan_parse[i].vid_is_default) {
-        parser_safe_set_vid(&vlan_parse[i], atoi(arg), 0);
+        parser_safe_set_vid(&vlan_parse[i], parse_number(arg, 10, VLAN_VALUE_MIN, VLAN_VALUE_MAX, "VLAN ID"), 0);
         parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
         parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
         parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
@@ -258,7 +274,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
       break;
     case 'e':
       if (vlan_parse[i].ethertype_is_default) {
-        parser_safe_set_ethertype(&vlan_parse[i], strtol(arg, NULL, 16), 0);
+        parser_safe_set_ethertype(&vlan_parse[i], parse_number(arg, 0, 0, 0xffff, "ethertype"), 0);
         parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
         parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
         parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
@@ -269,7 +285,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
       break;
     case 'p':
       if (vlan_parse[i].prio_is_default) {
-        parser_safe_set_prio(&vlan_parse[i], atol(arg), 0);
+        parser_safe_set_prio(&vlan_parse[i], parse_number(arg, 10, 0, 7, "priority"), 0);
         parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
         parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
         parser_safe_set_dei(&vlan_parse[i], DEFAULT_DEI, 1);
@@ -280,7 +296,7 @@ void parse_vlan_related_option(char type, const char* arg, vlan_parser_t* vlan_p
       break;
     case 'i':
       if (vlan_parse[i].dei_is_default) {
-        parser_safe_set_dei(&vlan_parse[i], atol(arg), 0);
+        parser_safe_set_dei(&vlan_parse[i], parse_number(arg, 10, 0, 1, "DEI"), 0);
         parser_safe_set_vid(&vlan_parse[i], DEFAULT_VID, 1);
         parser_safe_set_ethertype(&vlan_parse[i], DEFAULT_ETHERTYPE, 1);
         parser_safe_set_prio(&vlan_parse[i], DEFAULT_PRIO, 1);
@@ -449,7 +465,7 @@ int main(int argc, char *argv[])
       break;
     case 'l':
       cli_length = 1;
-      frame_size = atol(optarg);
+      frame_size = parse_number(optarg, 10, 1, MAX_FRAME_SIZE, "frame length");
       break;
     case 'r':
       cli_raw_data = 1;
