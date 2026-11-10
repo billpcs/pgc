@@ -122,19 +122,31 @@ void set_dei_value(vlan_t *vlan, uint16_t value)
   vlan->tci = (vlan->tci & 0xe000) | ((value << 12) & 0x1000) | (vlan->tci & 0x0fff);
 }
 
-// parse the str and save it into mac
 void set_mac(uint8_t *mac, const char *str)
 {
-
-  char* init = strdup(str);
-
+  char *init = strdup(str);
+  char *end;
   int i = 0;
+
+  CHECK_MALLOC(init);
+
   char *str_byte = strtok(init, ":");
-  while (str_byte != NULL)
-  {
-    mac[i++] = (uint8_t)strtol(str_byte, NULL, 16);
+
+  while (str_byte != NULL) {
+    if (i >= MAC_ADDRESS_BYTES)
+        EXIT_ERROR("Invalid MAC address", CLI_ERROR);
+
+    long value = strtol(str_byte, &end, 16);
+
+    if (*str_byte == '\0' || *end != '\0' || value < 0 || value > 0xff)
+        EXIT_ERROR("Invalid MAC address", CLI_ERROR);
+
+    mac[i++] = (uint8_t)value;
     str_byte = strtok(NULL, ":");
   }
+
+  if (i != MAC_ADDRESS_BYTES)
+      EXIT_ERROR("Invalid MAC address", CLI_ERROR);
 
   free(init);
 }
