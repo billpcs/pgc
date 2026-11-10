@@ -173,29 +173,27 @@ void print_mac(uint8_t *mac)
          mac[5]);
 }
 
-uint8_t pcap_init(FILE **f, const char *filename)
+void pcap_init(FILE **f, const char *filename)
 {
   *f = fopen(filename, "wb");
 
   if (*f == NULL)
     EXIT_ERROR("Could not create file", FILE_ERROR);
-
-  return 0;
 }
 
-uint8_t pcap_write_pcap_header(FILE *f, pcap_hdr_t *hdr)
+void pcap_write_pcap_header(FILE *f, pcap_hdr_t *hdr)
 {
   CHECK_FD(f);
   CHECK_FWRITE1(fwrite((const void *)hdr, sizeof(pcap_hdr_t), 1, f));
 }
 
-uint8_t pcap_write_pcap_rec_header(FILE *f, pcaprec_hdr_t *rec)
+void pcap_write_pcap_rec_header(FILE *f, pcaprec_hdr_t *rec)
 {
   CHECK_FD(f);
   CHECK_FWRITE1(fwrite((const void *)rec, sizeof(pcaprec_hdr_t), 1, f));
 }
 
-uint8_t pcap_write(FILE *f, void *data, uint32_t size)
+void pcap_write(FILE *f, void *data, uint32_t size)
 {
   CHECK_FD(f);
   CHECK_FWRITE1(fwrite((const void *)data, size, 1, f))
