@@ -1,5 +1,5 @@
 /*
-  A program to create L2 frame pcap files (not intersted in IP/TCP etc)
+  A program to create L2 frame pcap files (not interested in IP/TCP etc)
   Supports VLANs!
 */
 
