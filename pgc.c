@@ -327,18 +327,6 @@ void parse_raw(uint8_t* buf, char* sstring, uint32_t* size) {
   free(string);
 }
 
-void pcap_write_raw(FILE* pcap_file, uint8_t* buf, int size) {
-  uint16_t* nbuf = (uint16_t *)buf;
-  int i;
-  for (i = 0; i < size/2; i++) {
-    uint16_t data = (nbuf[i]);
-    pcap_write(pcap_file, &data, sizeof(uint16_t));
-  }
-  if (size % 2 != 0) {
-    pcap_write(pcap_file, &buf[size -1], sizeof(uint8_t));
-  }
-}
-
 void populate_packet_pcap_header(pcaprec_hdr_t *rec, uint32_t size)
 {
   rec->ts_sec = time(NULL);
@@ -492,7 +480,7 @@ int main(int argc, char *argv[])
     rest_size = sizeof(ip);
   }
   else {
-    pcap_write_raw(pcap_file, (uint8_t*)&raw_data, cli_raw_size);
+    pcap_write(pcap_file, (uint8_t*)&raw_data, cli_raw_size);
     rest_size = cli_raw_size;
   }
 
