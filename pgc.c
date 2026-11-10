@@ -308,7 +308,7 @@ void filter_string(char* in, char** output, char needle) {
   out[j] = '\0';
 }
 
-void parse_raw(uint8_t* buf, char* sstring, uint32_t* size) {
+void parse_raw(uint8_t* buf, uint32_t buf_size, char* sstring, uint32_t* size) {
   int i, s = 0;
   char substr[3];
   uint32_t size_sum = 0;
@@ -319,6 +319,10 @@ void parse_raw(uint8_t* buf, char* sstring, uint32_t* size) {
     if (num_next == 0) break;
     memcpy(substr, &string[s], num_next);
     substr[num_next] = '\0';
+
+    if ((uint32_t)i >= buf_size)
+        EXIT_ERROR("Raw data too large", CLI_ERROR);
+
     buf[i] = strtol(substr, NULL, 16);
     size_sum += 1;
     if (num_next != 2) break;
@@ -433,7 +437,7 @@ int main(int argc, char *argv[])
       break;
     case 'r':
       cli_raw_data = 1;
-      parse_raw(raw_data, optarg, &cli_raw_size);
+      parse_raw(raw_data, MAX_RAW_BYTES, optarg, &cli_raw_size);
       break;
     default:
       print_help();
